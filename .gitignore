@@ -35,6 +35,7 @@ ENV/
 # Data and results
 data/
 results/
+debug/
 *.log
 
 # OS

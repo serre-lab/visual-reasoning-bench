@@ -22,17 +22,23 @@ class BaseModel(ABC):
         self.config = kwargs
     
     @abstractmethod
-    def predict(self, image_path: str, question: str) -> str:
+    def predict(
+        self,
+        image_path: Optional[str],
+        question: str,
+        image_bytes: Optional[bytes] = None,
+    ) -> str:
         """Generate a prediction for the given image and question.
         
         Args:
-            image_path: Path to the image file
+            image_path: Path to the image file (if available)
             question: Question to ask about the image
+            image_bytes: Raw image bytes when no local path exists
             
         Returns:
             String prediction/answer from the model
         """
-        pass
+        raise NotImplementedError
     
     def batch_predict(self, samples: list) -> list:
         """Generate predictions for multiple samples.

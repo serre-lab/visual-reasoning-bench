@@ -59,16 +59,14 @@ python scripts/run_eval.py --config configs/example.yaml --verbose
 
 ### VPT Integration
 
-1. Download the official VPT dataset from the [Brown mirror](https://connectomics.clps.brown.edu/tf_records/VPT/) or via Hugging Face (`pzhou10/3D-PC`) as described in [docs/vpt.md](docs/vpt.md). Place the extracted folder anywhere on disk.
-2. For local smoke tests, you can point to the included `samples/vpt_min` directory, which mirrors the CSV layout with a handful of synthetic images.
-3. Update `configs/vpt_chatgpt.yaml` to set `dataset.data_dir` to your download path and run:
+The `VPTDataset` streams directly from Hugging Face (`3D-PC/3D-PC`). Install the `datasets` package (included in `requirements.txt`), export your OpenAI key, and run:
 
 ```bash
 export OPENAI_API_KEY=sk-your-key
 python scripts/run_eval.py --config configs/vpt_chatgpt.yaml --verbose
 ```
 
-The VPT dataset class reads CSV manifests such as `val_perspective_balanced.csv` and loads the corresponding `train/` or `test/` images, making it easy to benchmark either the `perspective` or `depth` tasks with any model wrapper.
+Tweak `configs/vpt_chatgpt.yaml` to choose `hf_config` (`depth`, `vpt-basic`, or `vpt-strategy`), pick a split (`train`, `validation`, `test`, `human`), or set `limit` for quick smoke tests. The loader automatically uses the dataset-provided prompt/statement when available, so the VLM sees the exact question used in the benchmark. Images stay in memory as raw bytes, so any model wrapper that accepts `image_bytes` (e.g., `ChatGPTVisionModel`) can benchmark VPT without extra preprocessing.
 
 ### ChatGPT Vision Demo
 
@@ -113,6 +111,7 @@ class MyDataset(BaseDataset):
             {
                 'id': 'sample_0',
                 'image_path': '/path/to/image.png',
+                'image_bytes': None,  # Use raw bytes when no local path exists
                 'question': 'What do you see?',
                 'answer': 'A cat'
             },
@@ -128,9 +127,10 @@ All models inherit from `BaseModel` and must implement `predict()`:
 from bench.models import BaseModel
 
 class MyModel(BaseModel):
-    def predict(self, image_path: str, question: str) -> str:
+    def predict(self, image_path: str | None, question: str, image_bytes: bytes | None = None) -> str:
         # Your inference code here
-        prediction = self.model.generate(image_path, question)
+        use_bytes = image_bytes if image_bytes is not None else open(image_path, 'rb').read()
+        prediction = self.model.generate(use_bytes, question)
         return prediction
 ```
 

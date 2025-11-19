@@ -1,5 +1,7 @@
 """LLaVA model implementation."""
 
+from typing import Optional
+
 from .base import BaseModel
 
 
@@ -22,7 +24,12 @@ class LLaVAModel(BaseModel):
         # In practice: Load actual model here
         # self.model = load_llava_model(model_path)
     
-    def predict(self, image_path: str, question: str) -> str:
+    def predict(
+        self,
+        image_path: Optional[str],
+        question: str,
+        image_bytes: Optional[bytes] = None,
+    ) -> str:
         """Generate a prediction using LLaVA.
         
         Args:
@@ -33,8 +40,4 @@ class LLaVAModel(BaseModel):
             String prediction from LLaVA
         """
         # Scaffold implementation - returns dummy prediction
-        # In practice: This would run actual inference
-        # return self.model.generate(image_path, question)
-        
-        # For testing purposes, return a simple response
         return "yes"  # Dummy prediction

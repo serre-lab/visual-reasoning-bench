@@ -1,60 +1,82 @@
-"""Dataset loader for the Visual Perspective Taking (VPT) benchmark."""
+"""Hugging Face loader for the Visual Perspective Taking (VPT) benchmark."""
 
 from __future__ import annotations
 
-import csv
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Any, Dict, Optional
 
 from .base import BaseDataset
 
+try:
+    from datasets import Image as HFImage
+    from datasets import load_dataset
+except ImportError as exc:  # pragma: no cover
+    raise ImportError(
+        "The 'datasets' package is required to use VPTDataset. "
+        "Install it via `pip install datasets`."
+    ) from exc
+
 
 class VPTDataset(BaseDataset):
-    """Dataset for the 3D-PC / VPT benchmark released by Serre Lab."""
+    """Dataset wrapper that streams VPT splits from Hugging Face."""
 
-    VALID_TASKS = {"perspective", "depth"}
-    VALID_SPLITS = {"train", "val", "test", "human"}
-    DEFAULT_QUESTIONS = {
-        "perspective": "Is the target object visible from the observer's viewpoint?",
-        "depth": "Is the highlighted object closer to the camera than its partner?",
+    DEFAULT_QUESTIONS: Dict[str, str] = {
+        "depth": "Is the green object closer to the camera than the red ball? Answer only with 'yes' or 'no'.",
+        "vpt-basic": "From the observer's viewpoint, can they see the target object?",
+        "vpt-strategy": "Does the observer maintain line of sight to the target in this scenario?",
+        "default": "Is the statement about this {task} scene true?",
+    }
+
+    SPLIT_ALIASES = {
+        "train": "train",
+        "training": "train",
+        "val": "validation",
+        "validation": "validation",
+        "dev": "validation",
+        "test": "test",
+        "human": "test",
     }
 
     def __init__(
         self,
-        data_dir: str,
-        task: str = "perspective",
-        split: str = "val",
-        balanced: bool = True,
-        question_template: str | None = None,
+        data_dir: str = ".",
+        hf_dataset: str = "3D-PC/3D-PC",
+        hf_config: str = "depth",
+        split: str = "validation",
+        hf_cache_dir: Optional[str] = None,
+        use_auth_token: Optional[str] = None,
+        question_template: Optional[str] = None,
         positive_answer: str = "yes",
         negative_answer: str = "no",
-        limit: int | None = None,
+        limit: Optional[int] = None,
         **kwargs,
-    ):
-        """Load samples from a VPT CSV manifest.
+    ) -> None:
+        """Initialize the loader.
 
         Args:
-            data_dir: Directory containing train/test folders and CSV manifests.
-            task: Either ``perspective`` or ``depth`` to pick which CSV to read.
-            split: One of ``train``, ``val``, ``test``, or ``human``.
-            balanced: Whether to read ``*_balanced.csv`` (default) or the raw CSV.
-            question_template: Optional override for the prompt text. Can reference
-                ``{task}`` which will expand to the task name.
+            data_dir: Unused placeholder to satisfy BaseDataset (keep default).
+            hf_dataset: Dataset identifier on Hugging Face Hub.
+            hf_config: Configuration name (e.g., ``depth``, ``vpt-basic``).
+            split: Split name or alias (``train``, ``val``, ``test``).
+            hf_cache_dir: Optional override for Hugging Face's cache directory.
+            use_auth_token: Optional token for gated datasets.
+            question_template: Format string describing the task; ``{task}`` expands
+                to the config name. Falls back to sensible defaults per config.
             positive_answer: String to use for label ``1``.
             negative_answer: String to use for label ``0``.
-            limit: Optional cap on how many samples to load (useful for smoke tests).
-            **kwargs: Ignored but kept for compatibility with BaseDataset signature.
+            limit: Optional cap on the number of samples to load for debugging.
+            **kwargs: Ignored additional params to stay compatible with BaseDataset.
         """
-        self.task = task.lower()
+        self.hf_dataset = hf_dataset
+        self.hf_config = hf_config
         self.split = split.lower()
-        if self.task not in self.VALID_TASKS:
-            raise ValueError(f"Unsupported VPT task: {task}")
-        if self.split not in self.VALID_SPLITS:
-            raise ValueError(f"Unsupported VPT split: {split}")
-
-        self.balanced = balanced
+        self.hf_cache_dir = hf_cache_dir
+        self.use_auth_token = use_auth_token
         self.question_template = (
-            question_template or self.DEFAULT_QUESTIONS[self.task]
+            question_template
+            or self.DEFAULT_QUESTIONS.get(
+                hf_config, self.DEFAULT_QUESTIONS["default"]
+            )
         )
         self.positive_answer = positive_answer
         self.negative_answer = negative_answer
@@ -63,96 +85,84 @@ class VPTDataset(BaseDataset):
         super().__init__(data_dir=data_dir, **kwargs)
 
     def _load_data(self) -> None:
-        csv_path = self._resolve_csv_path()
-        base_dir = self._resolve_base_dir()
-        rows = list(self._iter_rows(csv_path))
+        normalized_split = self._normalize_split(self.split)
+        split_expr = (
+            f"{normalized_split}[:{self.limit}]"
+            if self.limit is not None
+            else normalized_split
+        )
+        dataset = load_dataset(
+            self.hf_dataset,
+            self.hf_config,
+            split=split_expr,
+            cache_dir=self.hf_cache_dir,
+            use_auth_token=self.use_auth_token,
+        )
+        dataset = dataset.cast_column("image", HFImage(decode=False))
 
-        if not rows:
-            raise ValueError(f"No entries found in {csv_path}")
+        for idx, example in enumerate(dataset):
 
-        for idx, (relative_path, label_value) in enumerate(rows):
-            if self.limit is not None and len(self.samples) >= self.limit:
-                break
+            image_info = example["image"]
+            image_bytes = image_info.get("bytes")
+            if image_bytes is None:
+                raise ValueError("Encountered image without byte content in VPT dataset.")
 
-            image_path = base_dir / relative_path
-            label_int, answer = self._label_to_answer(label_value)
-            question = self._format_question()
-            sample_id = self._build_sample_id(idx, relative_path, label_int)
+            filename_hint = example.get("img_id") or image_info.get("path") or f"{normalized_split}_{idx}.png"
+            label = self._to_int_label(example["label"])
+            answer = self.positive_answer if label == 1 else self.negative_answer
+            sample_id = self._build_sample_id(idx, filename_hint, label, normalized_split)
+
+            question = self._resolve_question(example)
+            metadata = {
+                "hf_dataset": self.hf_dataset,
+                "hf_config": self.hf_config,
+                "split": normalized_split,
+                "label": label,
+                "category": example.get("category"),
+                "scene": example.get("scene"),
+                "setting": example.get("setting"),
+                "img_id": example.get("img_id"),
+            }
 
             self.samples.append(
                 {
                     "id": sample_id,
-                    "image_path": str(image_path),
+                    "image_path": None,
+                    "image_bytes": image_bytes,
                     "question": question,
                     "answer": answer,
-                    "metadata": {
-                        "task": self.task,
-                        "split": self.split,
-                        "label": label_int,
-                        "relative_path": relative_path,
-                    },
+                    "metadata": metadata,
                 }
             )
 
-    def _resolve_csv_path(self) -> Path:
-        suffix = "_balanced" if self.balanced else ""
-        csv_name = f"{self.split}_{self.task}{suffix}.csv"
-        candidate = Path(self.data_dir) / csv_name
-        if not candidate.exists():
-            raise FileNotFoundError(
-                f"Expected CSV manifest not found: {candidate}"
+    def _normalize_split(self, split: str) -> str:
+        if split.lower() not in self.SPLIT_ALIASES:
+            raise ValueError(
+                f"Unsupported VPT split '{split}'. "
+                f"Valid values: {', '.join(sorted(self.SPLIT_ALIASES.keys()))}"
             )
-        return candidate
-
-    def _resolve_base_dir(self) -> Path:
-        split_dir = "train" if self.split in {"train", "val"} else "test"
-        base_dir = Path(self.data_dir) / split_dir
-        if not base_dir.exists():
-            raise FileNotFoundError(
-                f"Base directory for split '{self.split}' not found: {base_dir}"
-            )
-        return base_dir
-
-    def _iter_rows(self, csv_path: Path) -> Iterable[Tuple[str, str]]:
-        with csv_path.open("r", newline="") as handle:
-            reader = csv.reader(handle)
-            for idx, row in enumerate(reader):
-                if not row:
-                    continue
-                first = row[0].strip()
-                if not first:
-                    continue
-                if idx == 0 and self._looks_like_header(row):
-                    continue
-                if len(row) < 2:
-                    raise ValueError(
-                        f"Malformed row in {csv_path}: expected at least 2 columns, got {row}"
-                    )
-                yield first, row[1].strip()
+        return self.SPLIT_ALIASES[split.lower()]
 
     @staticmethod
-    def _looks_like_header(row: List[str]) -> bool:
-        header_tokens = {"path", "image", "img", "file", "relative_path"}
-        return row[0].strip().lower() in header_tokens
+    def _to_int_label(value) -> int:
+        if isinstance(value, bool):
+            return int(value)
+        try:
+            num = int(round(float(value)))
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Unable to parse label value '{value}' as binary int.") from exc
+        return 1 if num == 1 else 0
 
-    def _label_to_answer(self, value: str) -> Tuple[int, str]:
-        normalized = value.strip().lower()
-        if normalized in {"1", "true", "yes", "positive"}:
-            label = 1
-        elif normalized in {"0", "false", "no", "negative"}:
-            label = 0
-        else:
-            try:
-                label = int(float(normalized))
-            except ValueError as exc:
-                raise ValueError(f"Unrecognized label '{value}' in VPT CSV") from exc
+    def _build_sample_id(self, idx: int, filename: str, label: int, split: str) -> str:
+        slug = Path(filename).stem.replace(" ", "_")
+        return f"vpt-{self.hf_config}-{split}-{label}-{idx:05d}-{slug}"
 
-        answer = self.positive_answer if label == 1 else self.negative_answer
-        return label, answer
-
-    def _format_question(self) -> str:
-        return self.question_template.format(task=self.task.replace("_", " "))
-
-    def _build_sample_id(self, idx: int, relative_path: str, label: int) -> str:
-        slug = Path(relative_path).stem.replace(" ", "_")
-        return f"vpt-{self.task}-{self.split}-{label}-{idx:05d}-{slug}"
+    def _resolve_question(self, example: Dict[str, any]) -> str:
+        """Prefer dataset-provided textual prompts, fall back to template."""
+        for key in ("prompt", "question", "statement"):
+            value = example.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return self.question_template.format(
+            task=self.hf_config.replace("-", " ")
+        )
