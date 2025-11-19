@@ -1,0 +1,30 @@
+# Example configuration for running ChatGPT on the VPT benchmark
+
+dataset:
+  name: vpt
+  data_dir: ./samples/vpt_min  # Replace with the downloaded VPT dataset root
+  params:
+    task: perspective           # or depth
+    split: val                  # train, val, test, or human
+    balanced: true              # set false to read the unbalanced CSVs
+    question_template: "Answer yes or no: in this {task} scene, does the observer see the target object?"
+    positive_answer: "yes"
+    negative_answer: "no"
+
+model:
+  name: chatgpt
+  params:
+    openai_model: gpt-4o-mini
+    temperature: 0.0
+    max_output_tokens: 200
+    # optionals: api_key, api_base, system_prompt
+
+evaluation:
+  batch_size: 1
+  num_workers: 1
+  verbose: true
+
+output:
+  results_dir: ./results
+  save_predictions: true
+  save_visualizations: false

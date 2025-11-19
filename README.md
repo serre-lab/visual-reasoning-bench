@@ -57,6 +57,30 @@ python scripts/run_eval.py --config configs/example.yaml --verbose
 - `--output`: Path to save results JSON (default: `results/evaluation.json`)
 - `--verbose`: Show progress bar during evaluation
 
+### VPT Integration
+
+1. Download the official VPT dataset from the [Brown mirror](https://connectomics.clps.brown.edu/tf_records/VPT/) or via Hugging Face (`pzhou10/3D-PC`) as described in [docs/vpt.md](docs/vpt.md). Place the extracted folder anywhere on disk.
+2. For local smoke tests, you can point to the included `samples/vpt_min` directory, which mirrors the CSV layout with a handful of synthetic images.
+3. Update `configs/vpt_chatgpt.yaml` to set `dataset.data_dir` to your download path and run:
+
+```bash
+export OPENAI_API_KEY=sk-your-key
+python scripts/run_eval.py --config configs/vpt_chatgpt.yaml --verbose
+```
+
+The VPT dataset class reads CSV manifests such as `val_perspective_balanced.csv` and loads the corresponding `train/` or `test/` images, making it easy to benchmark either the `perspective` or `depth` tasks with any model wrapper.
+
+### ChatGPT Vision Demo
+
+Set `OPENAI_API_KEY` (or pass `api_key` to the class) and run:
+
+```bash
+export OPENAI_API_KEY=sk-your-key
+python scripts/demo_chatgpt_vlm.py --question "What color is this square?"
+```
+
+The script instantiates `ChatGPTVisionModel`, feeds `assets/demo_red_square.png`, and prints a real response from the ChatGPT VLM. Adjust `--image`, `--openai-model`, and decoding params to probe other prompts.
+
 ## Configuration
 
 Edit `configs/example.yaml` to customize your evaluation:

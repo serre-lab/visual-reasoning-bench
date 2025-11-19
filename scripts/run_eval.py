@@ -8,8 +8,8 @@ from pathlib import Path
 # Add bench to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from bench.datasets import PathfinderDataset
-from bench.models import LLaVAModel
+from bench.datasets import PathfinderDataset, VPTDataset
+from bench.models import ChatGPTVisionModel, LLaVAModel
 from bench.evaluate import Evaluator
 from bench.utils import load_config, save_results
 
@@ -55,9 +55,17 @@ def main():
     dataset_config = config['dataset']
     print(f"\nInitializing dataset: {dataset_config['name']}")
     
+    dataset_params = dataset_config.get('params', {})
+    
     if dataset_config['name'] == 'pathfinder':
         dataset = PathfinderDataset(
-            data_dir=dataset_config['data_dir']
+            data_dir=dataset_config['data_dir'],
+            **dataset_params
+        )
+    elif dataset_config['name'] == 'vpt':
+        dataset = VPTDataset(
+            data_dir=dataset_config['data_dir'],
+            **dataset_params
         )
     else:
         raise ValueError(f"Unknown dataset: {dataset_config['name']}")
@@ -71,6 +79,10 @@ def main():
     if model_config['name'] == 'llava':
         model = LLaVAModel(
             model_path=model_config.get('model_path'),
+            **model_config.get('params', {})
+        )
+    elif model_config['name'] == 'chatgpt':
+        model = ChatGPTVisionModel(
             **model_config.get('params', {})
         )
     else:

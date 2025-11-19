@@ -2,5 +2,6 @@
 
 from .base import BaseDataset
 from .pathfinder import PathfinderDataset
+from .vpt import VPTDataset
 
-__all__ = ["BaseDataset", "PathfinderDataset"]
+__all__ = ["BaseDataset", "PathfinderDataset", "VPTDataset"]
