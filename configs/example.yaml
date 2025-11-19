@@ -1,0 +1,28 @@
+# Example configuration for VLM benchmark evaluation
+
+# Dataset configuration
+dataset:
+  name: pathfinder
+  data_dir: ./data/pathfinder
+  # Additional dataset-specific parameters can be added here
+
+# Model configuration
+model:
+  name: llava
+  model_path: null  # Path to model checkpoint (if needed)
+  params:
+    temperature: 0.0
+    max_tokens: 512
+    # Additional model-specific parameters
+
+# Evaluation configuration
+evaluation:
+  batch_size: 1
+  num_workers: 1
+  verbose: true
+
+# Output configuration
+output:
+  results_dir: ./results
+  save_predictions: true
+  save_visualizations: false

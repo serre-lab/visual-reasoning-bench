@@ -1,0 +1,10 @@
+# Core dependencies
+pyyaml>=6.0
+tqdm>=4.65.0
+
+# Optional dependencies for actual implementation
+# Uncomment when integrating real models and datasets
+# Pillow>=9.0.0
+# numpy>=1.20.0
+# torch>=2.0.0
+# transformers>=4.30.0
