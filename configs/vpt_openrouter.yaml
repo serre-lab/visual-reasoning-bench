@@ -1,0 +1,32 @@
+# Example configuration for running an OpenRouter VLM on the VPT benchmark
+
+dataset:
+  name: vpt
+  data_dir: "."
+  params:
+    hf_dataset: "3D-PC/3D-PC"
+    hf_config: "depth"         # depth | vpt-basic | vpt-strategy
+    split: "validation"        # train | validation | test | human
+    hf_cache_dir: null         # optional override
+    limit: null                # set to an int for smoke tests
+    positive_answer: "yes"
+    negative_answer: "no"
+
+model:
+  name: openrouter
+  params:
+    model_slug: "openai/gpt-4o-mini"
+    temperature: 0.0
+    max_output_tokens: 200
+    force_binary: true
+    # optionals: api_key, system_prompt, http_referer, x_title
+
+evaluation:
+  batch_size: 1
+  num_workers: 1
+  verbose: true
+
+output:
+  results_dir: ./results
+  save_predictions: true
+  save_visualizations: false

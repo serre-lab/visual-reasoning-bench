@@ -8,10 +8,9 @@ dataset:
     hf_config: "depth"         # e.g., depth, vpt-basic, vpt-strategy
     split: "validation"        # train | val | test | human
     hf_cache_dir: null         # optional override (defaults to ~/.cache/huggingface)
-    limit: null                # set to an int for quick smoke tests
     positive_answer: "yes"
     negative_answer: "no"
-    limit: 20
+    limit: 400
 
 model:
   name: chatgpt

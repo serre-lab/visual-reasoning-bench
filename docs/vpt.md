@@ -25,13 +25,20 @@ dataset:
     limit: null              # set an integer for quick smoke tests
 ```
 
-`VPTDataset` pulls the human-written prompt/statement directly from each example when available. Override `question_template`, `positive_answer`, or `negative_answer` only if you need a custom phrasing.
+`VPTDataset` pulls the human-written prompt/statement directly from each example when available. For the `depth` config (which lacks explicit text), it deterministically alternates between the “green closer than red” and “red closer than green” questions so that models can’t memorize a single phrasing; the ground-truth answer is flipped automatically in the inverted case. Override `question_template`, `positive_answer`, or `negative_answer` only if you need a custom phrasing.
 
 ## 3. Run an evaluation
 
+Pick the model backend that fits your environment:
+
 ```bash
-export OPENAI_API_KEY=sk-your-key
+# OpenRouter-hosted VLMs (preferred)
+export OPENROUTER_API_KEY=sk-your-openrouter-key
+python scripts/run_eval.py --config configs/vpt_openrouter.yaml --verbose
+
+# Direct OpenAI access (optional)
+export OPENAI_API_KEY=sk-your-openai-key
 python scripts/run_eval.py --config configs/vpt_chatgpt.yaml --verbose
 ```
 
-The loader yields samples with raw `image_bytes`, so models like `ChatGPTVisionModel` (which now accept either file paths or bytes) can run inference without touching the filesystem. Swap the model block in the config to test other VLM wrappers as you integrate them.
+The loader yields samples with raw `image_bytes`, so models like `OpenRouterVisionModel` or `ChatGPTVisionModel` (both accept bytes and on-disk paths) can run inference without touching the filesystem. Swap the model block in either config to test additional wrappers as you integrate them.

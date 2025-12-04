@@ -3,6 +3,7 @@ pyyaml>=6.0
 tqdm>=4.65.0
 openai>=1.14.2
 datasets>=4.4.0
+requests>=2.31.0
 
 # Optional dependencies for actual implementation
 # Uncomment when integrating real models and datasets

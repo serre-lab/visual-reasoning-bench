@@ -59,14 +59,25 @@ python scripts/run_eval.py --config configs/example.yaml --verbose
 
 ### VPT Integration
 
-The `VPTDataset` streams directly from Hugging Face (`3D-PC/3D-PC`). Install the `datasets` package (included in `requirements.txt`), export your OpenAI key, and run:
+The `VPTDataset` streams directly from Hugging Face (`3D-PC/3D-PC`). Install the `datasets` package (included in `requirements.txt`), then pick one of the configs below and run the evaluation script.
+
+- `configs/vpt_openrouter.yaml`: routes prompts through OpenRouter (preferred for hosted VLMs).
+- `configs/vpt_chatgpt.yaml`: talks to OpenAI's API directly (useful for local experiments).
+
+Tweak either config to choose `hf_config` (`depth`, `vpt-basic`, or `vpt-strategy`), pick a split (`train`, `validation`, `test`, `human`), or set `limit` for quick smoke tests. The loader automatically uses the dataset-provided prompt/statement when available; for `depth` it deterministically alternates between “green closer than red?” and the inverted phrasing, flipping the ground-truth answer accordingly. Images stay in memory as raw bytes, so any model wrapper that accepts `image_bytes` can benchmark VPT without extra preprocessing.
+
+### OpenRouter Vision Models
+
+Set your OpenRouter credentials and run the config that targets the OpenRouter API:
 
 ```bash
-export OPENAI_API_KEY=sk-your-key
-python scripts/run_eval.py --config configs/vpt_chatgpt.yaml --verbose
+export OPENROUTER_API_KEY=sk-your-openrouter-key
+python scripts/run_eval.py --config configs/vpt_openrouter.yaml --verbose
 ```
 
-Tweak `configs/vpt_chatgpt.yaml` to choose `hf_config` (`depth`, `vpt-basic`, or `vpt-strategy`), pick a split (`train`, `validation`, `test`, `human`), or set `limit` for quick smoke tests. The loader automatically uses the dataset-provided prompt/statement when available, so the VLM sees the exact question used in the benchmark. Images stay in memory as raw bytes, so any model wrapper that accepts `image_bytes` (e.g., `ChatGPTVisionModel`) can benchmark VPT without extra preprocessing.
+`configs/vpt_openrouter.yaml` lets you swap `model_slug` (e.g., `openai/gpt-4o-mini`, `google/gemini-1.5-pro`), adjust decoding params, and pass headers such as `http_referer` or `x_title` if your OpenRouter account requires them.
+
+Prefer to call OpenAI directly? Export `OPENAI_API_KEY` and point to `configs/vpt_chatgpt.yaml` instead.
 
 ### ChatGPT Vision Demo
 

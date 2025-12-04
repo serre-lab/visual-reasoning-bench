@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from bench.datasets import PathfinderDataset, VPTDataset
-from bench.models import ChatGPTVisionModel, LLaVAModel
+from bench.models import ChatGPTVisionModel, LLaVAModel, OpenRouterVisionModel
 from bench.evaluate import Evaluator
 from bench.utils import load_config, save_results
 
@@ -83,6 +83,10 @@ def main():
         )
     elif model_config['name'] == 'chatgpt':
         model = ChatGPTVisionModel(
+            **model_config.get('params', {})
+        )
+    elif model_config['name'] == 'openrouter':
+        model = OpenRouterVisionModel(
             **model_config.get('params', {})
         )
     else:
