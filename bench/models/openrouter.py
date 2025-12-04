@@ -30,6 +30,8 @@ class OpenRouterVisionModel(BaseModel):
         force_binary: bool = True,
         positive_aliases: Optional[List[str]] = None,
         negative_aliases: Optional[List[str]] = None,
+        reasoning_enabled: Optional[bool] = None,
+        max_retries: int = 4,
         **kwargs: Any,
     ) -> None:
         """Initialize the OpenRouter client.
@@ -46,6 +48,9 @@ class OpenRouterVisionModel(BaseModel):
             force_binary: If True, map outputs to yes/no using alias lists.
             positive_aliases: Extra strings that should count as yes.
             negative_aliases: Extra strings that should count as no.
+            reasoning_enabled: Whether to request provider reasoning mode. If None,
+                omit the key. Some models require reasoning to remain enabled.
+            max_retries: Retry attempts when the model returns empty/blank output.
             **kwargs: Stored in BaseModel metadata.
         """
         super().__init__(
@@ -53,6 +58,11 @@ class OpenRouterVisionModel(BaseModel):
             model_slug=model_slug,
             temperature=temperature,
             max_output_tokens=max_output_tokens,
+            base_url=base_url,
+            http_referer=http_referer,
+            x_title=x_title,
+            system_prompt=system_prompt,
+            force_binary=force_binary,
             **kwargs,
         )
         self.model_slug = model_slug
@@ -79,6 +89,8 @@ class OpenRouterVisionModel(BaseModel):
             "false",
             "incorrect",
         ] + (negative_aliases or [])
+        self.reasoning_enabled = reasoning_enabled
+        self.max_retries = max(0, int(max_retries))
 
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
         if not self.api_key:
@@ -96,12 +108,37 @@ class OpenRouterVisionModel(BaseModel):
 
         encoded_image, mime_type = self._encode_image(image_path, image_bytes)
         messages = self._build_messages(question, encoded_image, mime_type)
+
+        attempt = 0
+        last_error = None
+        while attempt <= self.max_retries:
+            try:
+                return self._send_request(messages)
+            except RuntimeError as exc:
+                last_error = exc
+                # If empty/blank response, retry until max_retries
+                if "empty response" in str(exc).lower() and attempt < self.max_retries:
+                    attempt += 1
+                    continue
+                raise
+        # If we exhausted retries, return a null prediction to mark incorrect
+        return {
+            "prediction": "null",
+            "raw_output": "",
+            "reasoning_details": None,
+            "error": str(last_error) if last_error else "empty response",
+        }
+
+    def _send_request(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
         payload = {
             "model": self.model_slug,
             "messages": messages,
             "temperature": self.temperature,
             "max_tokens": self.max_output_tokens,
+            "stop": ["\n"],
         }
+        if self.reasoning_enabled is not None:
+            payload["reasoning"] = {"enabled": bool(self.reasoning_enabled)}
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -117,11 +154,17 @@ class OpenRouterVisionModel(BaseModel):
                 f"OpenRouter request failed ({response.status_code}): {response.text}"
             )
         data = response.json()
-        raw_text = self._extract_text(data)
+        message = self._extract_message(data)
+        raw_text = self._extract_text_from_message(message)
+        reasoning_details = message.get("reasoning_details")
+
+        if not raw_text or not raw_text.strip():
+            raise RuntimeError("OpenRouter returned an empty response for this request.")
         processed = self._postprocess_response(raw_text)
         return {
             "prediction": processed,
             "raw_output": raw_text,
+            "reasoning_details": reasoning_details,
         }
 
     def _build_messages(
@@ -175,13 +218,17 @@ class OpenRouterVisionModel(BaseModel):
         return f"image/{kind}"
 
     @staticmethod
-    def _extract_text(response_data: Dict[str, Any]) -> str:
+    def _extract_message(response_data: Dict[str, Any]) -> Dict[str, Any]:
         choices = response_data.get("choices")
         if not choices:
             raise RuntimeError("No choices returned from OpenRouter.")
         message = choices[0].get("message")
         if not message:
             raise RuntimeError("No message found in OpenRouter response.")
+        return message
+
+    @staticmethod
+    def _extract_text_from_message(message: Dict[str, Any]) -> str:
         content = message.get("content")
         if isinstance(content, str):
             return content.strip()
@@ -199,16 +246,19 @@ class OpenRouterVisionModel(BaseModel):
         normalized = text.strip()
         if not self.force_binary:
             return normalized
+        if not normalized:
+            return normalized
 
         lowered = normalized.lower()
         candidate = self._match_alias(lowered)
         if candidate:
             return candidate
 
-        first_token = lowered.split()[0]
-        candidate = self._match_alias(first_token)
-        if candidate:
-            return candidate
+        tokens = lowered.split()
+        if tokens:
+            candidate = self._match_alias(tokens[0])
+            if candidate:
+                return candidate
 
         return normalized
 

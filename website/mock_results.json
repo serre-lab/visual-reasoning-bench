@@ -1,0 +1,44 @@
+{
+  "updated_at": "2024-10-01T12:00:00Z",
+  "source": "Dummy results for mock layout",
+  "benchmarks": [
+    {
+      "id": "vpt-depth",
+      "name": "VPT Depth Reasoning",
+      "metric": "Accuracy",
+      "dataset_size": 200,
+      "description": "Binary depth-ordering questions on multi-object scenes.",
+      "models": [
+        { "name": "OpenAI GPT-5.1", "provider": "OpenRouter", "score": 0.87, "latency": "2.9s", "run_id": "2024-09-28-gpt5", "config": "openai/gpt-5_1" },
+        { "name": "OpenAI GPT-4o", "provider": "OpenRouter", "score": 0.82, "latency": "2.4s", "run_id": "2024-09-21-gpt4o", "config": "openai/gpt-4o" },
+        { "name": "Google Gemini 3 Pro Preview", "provider": "Google", "score": 0.79, "latency": "3.1s", "run_id": "2024-09-18-gemini3", "config": "google/gemini-3-pro-preview" },
+        { "name": "Anthropic Claude 3.5 Sonnet", "provider": "Anthropic", "score": 0.75, "latency": "2.6s", "run_id": "2024-09-15-sonnet35", "config": "anthropic/claude-3-5-sonnet" }
+      ]
+    },
+    {
+      "id": "pathfinder-easy",
+      "name": "Pathfinder Easy",
+      "metric": "Accuracy",
+      "dataset_size": 300,
+      "description": "Find the connecting path between two dots with short distractors.",
+      "models": [
+        { "name": "OpenAI GPT-5.1", "provider": "OpenRouter", "score": 0.81, "latency": "3.2s", "run_id": "2024-09-28-gpt5", "config": "openai/gpt-5_1" },
+        { "name": "OpenAI GPT-4o", "provider": "OpenRouter", "score": 0.77, "latency": "2.9s", "run_id": "2024-09-21-gpt4o", "config": "openai/gpt-4o" },
+        { "name": "Google Gemini 3 Pro Preview", "provider": "Google", "score": 0.72, "latency": "3.4s", "run_id": "2024-09-18-gemini3", "config": "google/gemini-3-pro-preview" }
+      ]
+    },
+    {
+      "id": "pathfinder-medium",
+      "name": "Pathfinder Medium",
+      "metric": "Accuracy",
+      "dataset_size": 300,
+      "description": "Longer mazes with heavier clutter to stress visual reasoning.",
+      "models": [
+        { "name": "OpenAI GPT-5.1", "provider": "OpenRouter", "score": 0.74, "latency": "3.5s", "run_id": "2024-09-28-gpt5", "config": "openai/gpt-5_1" },
+        { "name": "OpenAI GPT-4o", "provider": "OpenRouter", "score": 0.69, "latency": "3.0s", "run_id": "2024-09-21-gpt4o", "config": "openai/gpt-4o" },
+        { "name": "Google Gemini 3 Pro Preview", "provider": "Google", "score": 0.65, "latency": "3.6s", "run_id": "2024-09-18-gemini3", "config": "google/gemini-3-pro-preview" },
+        { "name": "Anthropic Claude 3.5 Sonnet", "provider": "Anthropic", "score": 0.62, "latency": "3.1s", "run_id": "2024-09-15-sonnet35", "config": "anthropic/claude-3-5-sonnet" }
+      ]
+    }
+  ]
+}

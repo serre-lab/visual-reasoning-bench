@@ -21,7 +21,8 @@ visual-reasoning-bench/
 │   │   └── pathfinder.py    # Pathfinder visual reasoning dataset
 │   ├── models/
 │   │   ├── base.py          # Base model interface
-│   │   └── llava.py         # LLaVA model wrapper
+│   │   ├── llava.py         # LLaVA model wrapper
+│   │   └── openrouter.py    # OpenRouter vision wrapper
 │   ├── evaluate/
 │   │   ├── evaluator.py     # Evaluation pipeline
 │   │   └── metrics.py       # Accuracy and other metrics
@@ -54,41 +55,27 @@ python scripts/run_eval.py --config configs/example.yaml --verbose
 ### Command Line Options
 
 - `--config`: Path to YAML configuration file (default: `configs/example.yaml`)
-- `--output`: Path to save results JSON (default: `results/evaluation.json`)
+- `--output`: Path to save results (file or directory; default: `results`)
 - `--verbose`: Show progress bar during evaluation
 
 ### VPT Integration
 
-The `VPTDataset` streams directly from Hugging Face (`3D-PC/3D-PC`). Install the `datasets` package (included in `requirements.txt`), then pick one of the configs below and run the evaluation script.
+The `VPTDataset` streams directly from Hugging Face (`3D-PC/3D-PC`). Install the `datasets` package (included in `requirements.txt`), then run the OpenRouter config:
 
 - `configs/vpt_openrouter.yaml`: routes prompts through OpenRouter (preferred for hosted VLMs).
-- `configs/vpt_chatgpt.yaml`: talks to OpenAI's API directly (useful for local experiments).
 
-Tweak either config to choose `hf_config` (`depth`, `vpt-basic`, or `vpt-strategy`), pick a split (`train`, `validation`, `test`, `human`), or set `limit` for quick smoke tests. The loader automatically uses the dataset-provided prompt/statement when available; for `depth` it deterministically alternates between “green closer than red?” and the inverted phrasing, flipping the ground-truth answer accordingly. Images stay in memory as raw bytes, so any model wrapper that accepts `image_bytes` can benchmark VPT without extra preprocessing.
+Tweak the config to choose `hf_config` (`depth`, `vpt-basic`, or `vpt-strategy`), pick a split (`train`, `validation`, `test`, `human`), or set `limit` for quick smoke tests. The loader automatically uses the dataset-provided prompt/statement when available; for `depth` it deterministically alternates between “green closer than red?” and the inverted phrasing, flipping the ground-truth answer accordingly. Images stay in memory as raw bytes, so any model wrapper that accepts `image_bytes` can benchmark VPT without extra preprocessing.
 
 ### OpenRouter Vision Models
 
-Set your OpenRouter credentials and run the config that targets the OpenRouter API:
+Set your OpenRouter credentials and run the config that targets the OpenRouter API (it can list multiple model slugs to benchmark them in series):
 
 ```bash
 export OPENROUTER_API_KEY=sk-your-openrouter-key
 python scripts/run_eval.py --config configs/vpt_openrouter.yaml --verbose
 ```
 
-`configs/vpt_openrouter.yaml` lets you swap `model_slug` (e.g., `openai/gpt-4o-mini`, `google/gemini-1.5-pro`), adjust decoding params, and pass headers such as `http_referer` or `x_title` if your OpenRouter account requires them.
-
-Prefer to call OpenAI directly? Export `OPENAI_API_KEY` and point to `configs/vpt_chatgpt.yaml` instead.
-
-### ChatGPT Vision Demo
-
-Set `OPENAI_API_KEY` (or pass `api_key` to the class) and run:
-
-```bash
-export OPENAI_API_KEY=sk-your-key
-python scripts/demo_chatgpt_vlm.py --question "What color is this square?"
-```
-
-The script instantiates `ChatGPTVisionModel`, feeds `assets/demo_red_square.png`, and prints a real response from the ChatGPT VLM. Adjust `--image`, `--openai-model`, and decoding params to probe other prompts.
+`configs/vpt_openrouter.yaml` lets you swap `model_slug` (e.g., `openai/gpt-4o-mini`, `google/gemini-1.5-pro`), adjust decoding params, and pass headers such as `http_referer` or `x_title` if your OpenRouter account requires them. When multiple models are defined, the runner evaluates each back-to-back and writes a separate JSON file under `results/` (or your `--output` path) per model.
 
 ## Configuration
 

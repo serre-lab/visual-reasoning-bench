@@ -8,18 +8,42 @@ dataset:
     hf_config: "depth"         # depth | vpt-basic | vpt-strategy
     split: "validation"        # train | validation | test | human
     hf_cache_dir: null         # optional override
-    limit: null                # set to an int for smoke tests
+    limit: 25                   # set to an int for smoke tests
     positive_answer: "yes"
     negative_answer: "no"
+    shuffle_samples: true
 
-model:
-  name: openrouter
-  params:
-    model_slug: "openai/gpt-4o-mini"
-    temperature: 0.0
-    max_output_tokens: 200
-    force_binary: true
-    # optionals: api_key, system_prompt, http_referer, x_title
+models:
+  - name: openrouter
+    params:
+      model_slug: "openai/gpt-4o"
+      temperature: 0.0
+      max_output_tokens: 1000
+      force_binary: true
+  - name: openrouter
+    params:
+      model_slug: "google/gemini-3-pro-preview"
+      temperature: 0.0
+      max_output_tokens: 4000
+      force_binary: true
+  - name: openrouter
+    params:
+      model_slug: "openai/gpt-5.1"
+      temperature: 0.0
+      max_output_tokens: 1000
+      force_binary: true
+  - name: openrouter
+    params:
+      model_slug: "openai/gpt-4o-2024-11-20"
+      temperature: 0.0
+      max_output_tokens: 500
+      force_binary: true
+  - name: openrouter
+    params:
+      model_slug: "anthropic/claude-opus-4.5"
+      temperature: 0.0
+      max_output_tokens: 500
+      force_binary: true
 
 evaluation:
   batch_size: 1

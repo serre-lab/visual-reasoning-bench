@@ -12,7 +12,7 @@ If the dataset is gated for your account, run `huggingface-cli login` once so th
 
 ## 2. Configure the loader
 
-`VPTDataset` accepts the following key parameters (see `configs/vpt_chatgpt.yaml`):
+`VPTDataset` accepts the following key parameters (see `configs/vpt_openrouter.yaml`):
 
 ```yaml
 dataset:
@@ -29,16 +29,11 @@ dataset:
 
 ## 3. Run an evaluation
 
-Pick the model backend that fits your environment:
+Use OpenRouter-hosted VLMs (you can list multiple slugs in the config to benchmark them back-to-back):
 
 ```bash
-# OpenRouter-hosted VLMs (preferred)
 export OPENROUTER_API_KEY=sk-your-openrouter-key
 python scripts/run_eval.py --config configs/vpt_openrouter.yaml --verbose
-
-# Direct OpenAI access (optional)
-export OPENAI_API_KEY=sk-your-openai-key
-python scripts/run_eval.py --config configs/vpt_chatgpt.yaml --verbose
 ```
 
-The loader yields samples with raw `image_bytes`, so models like `OpenRouterVisionModel` or `ChatGPTVisionModel` (both accept bytes and on-disk paths) can run inference without touching the filesystem. Swap the model block in either config to test additional wrappers as you integrate them.
+The loader yields samples with raw `image_bytes`, so `OpenRouterVisionModel` (accepts bytes or on-disk paths) can run inference without touching the filesystem. Swap or add model entries in `configs/vpt_openrouter.yaml` to try other OpenRouter providers.

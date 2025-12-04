@@ -1,244 +1,533 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visual Reasoning Bench - VLM Benchmarking Pipeline</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
-        
-        header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
-        }
-        
-        header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-        
-        header p {
-            font-size: 1.2em;
-            opacity: 0.95;
-        }
-        
-        .content {
-            padding: 40px;
-        }
-        
-        h2 {
-            color: #667eea;
-            margin: 30px 0 15px 0;
-            font-size: 1.8em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 8px;
-        }
-        
-        h3 {
-            color: #764ba2;
-            margin: 20px 0 10px 0;
-            font-size: 1.3em;
-        }
-        
-        p {
-            margin-bottom: 15px;
-        }
-        
-        code {
-            background: #f4f4f4;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-        
-        pre {
-            background: #2d2d2d;
-            color: #f8f8f2;
-            padding: 20px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 15px 0;
-        }
-        
-        pre code {
-            background: none;
-            padding: 0;
-            color: #f8f8f2;
-        }
-        
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-        
-        .feature {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .feature h3 {
-            margin-top: 0;
-            color: #667eea;
-        }
-        
-        ul {
-            margin-left: 20px;
-            margin-bottom: 15px;
-        }
-        
-        li {
-            margin-bottom: 8px;
-        }
-        
-        footer {
-            background: #2d2d2d;
-            color: white;
-            text-align: center;
-            padding: 20px;
-            font-size: 0.9em;
-        }
-        
-        footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        footer a:hover {
-            text-decoration: underline;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visual Reasoning Bench — Benchmark Results</title>
+  <style>
+    :root {
+      --bg: #0f1724;
+      --panel: #0f1724;
+      --card: rgba(255, 255, 255, 0.04);
+      --muted: #9fb3c8;
+      --text: #e7ecf3;
+      --accent: #26c6da;
+      --accent-2: #ffd166;
+      --border: rgba(255, 255, 255, 0.08);
+      --radius: 14px;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Space Grotesk", "Inter", "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(120% 120% at 20% 20%, rgba(38, 198, 218, 0.12), transparent 45%),
+        radial-gradient(90% 90% at 80% 0%, rgba(255, 209, 102, 0.14), transparent 40%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 28px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1160px;
+      background: linear-gradient(150deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(18px);
+    }
+
+    header {
+      padding: 36px 38px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: linear-gradient(140deg, rgba(38, 198, 218, 0.12), rgba(15, 23, 36, 0.6));
+    }
+
+    .eyebrow {
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 12px;
+      color: var(--accent-2);
+    }
+
+    h1 {
+      font-size: clamp(26px, 4vw, 34px);
+      line-height: 1.1;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .lede {
+      color: var(--muted);
+      max-width: 720px;
+      font-size: 16px;
+    }
+
+    .meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    main {
+      padding: 28px 32px 36px;
+      display: grid;
+      gap: 22px;
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid.auto {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .card.highlight {
+      border-color: rgba(38, 198, 218, 0.6);
+      box-shadow: 0 18px 36px rgba(38, 198, 218, 0.25);
+    }
+
+    .card h3 {
+      font-size: 18px;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      font-size: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 6px 0 10px;
+    }
+
+    .chip {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 13px;
+    }
+
+    .chip.active {
+      color: #0f1724;
+      background: var(--accent);
+      border-color: transparent;
+      box-shadow: 0 10px 30px rgba(38, 198, 218, 0.35);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 12px;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .score {
+      font-weight: 700;
+      color: var(--accent-2);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      gap: 6px;
+    }
+
+    .spark {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .spark-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      width: 80px;
+      flex-shrink: 0;
+    }
+
+    .spark-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 18px;
+      }
+      header {
+        padding: 26px;
+      }
+      main {
+        padding: 22px;
+      }
+      th, td {
+        padding: 10px 8px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🔍 Visual Reasoning Bench</h1>
-            <p>A Minimal Python Pipeline for VLM Benchmarking</p>
-        </header>
-        
-        <div class="content">
-            <section>
-                <h2>About</h2>
-                <p>
-                    Visual Reasoning Bench is a lightweight, modular Python framework for evaluating 
-                    Vision-Language Models (VLMs) on visual reasoning tasks. It provides a clean 
-                    architecture for datasets, models, and evaluation metrics.
-                </p>
-            </section>
-            
-            <section>
-                <h2>Features</h2>
-                <div class="features">
-                    <div class="feature">
-                        <h3>📊 Datasets</h3>
-                        <p>Extensible dataset interface with built-in support for Pathfinder and easy integration of custom datasets.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>🤖 Models</h3>
-                        <p>Modular model interface supporting LLaVA and other VLMs with simple predict API.</p>
-                    </div>
-                    <div class="feature">
-                        <h3>📈 Evaluation</h3>
-                        <p>Comprehensive evaluation pipeline with accuracy metrics and detailed result tracking.</p>
-                    </div>
-                </div>
-            </section>
-            
-            <section>
-                <h2>Quick Start</h2>
-                
-                <h3>Installation</h3>
-                <pre><code>git clone https://github.com/serre-lab/visual-reasoning-bench.git
-cd visual-reasoning-bench
-pip install -r requirements.txt  # (when available)</code></pre>
-                
-                <h3>Run Evaluation</h3>
-                <pre><code>python scripts/run_eval.py --config configs/example.yaml --verbose</code></pre>
-                
-                <h3>Project Structure</h3>
-                <pre><code>visual-reasoning-bench/
-├── bench/
-│   ├── datasets/
-│   │   ├── base.py          # Base dataset class
-│   │   └── pathfinder.py    # Pathfinder dataset
-│   ├── models/
-│   │   ├── base.py          # Base model class
-│   │   └── llava.py         # LLaVA model wrapper
-│   ├── evaluate/
-│   │   ├── evaluator.py     # Evaluation pipeline
-│   │   └── metrics.py       # Metrics computation
-│   └── utils/
-│       ├── io.py            # I/O utilities
-│       └── images.py        # Image utilities
-├── scripts/
-│   └── run_eval.py          # Main evaluation script
-├── configs/
-│   └── example.yaml         # Example configuration
-└── website/
-    └── index.html           # This page</code></pre>
-            </section>
-            
-            <section>
-                <h2>Architecture</h2>
-                <ul>
-                    <li><strong>Dataset:</strong> Yields samples with <code>{id, image_path, question, answer}</code></li>
-                    <li><strong>Model:</strong> Implements <code>predict(image_path, question) → str</code></li>
-                    <li><strong>Evaluator:</strong> Runs model on dataset and computes accuracy metrics</li>
-                </ul>
-            </section>
-            
-            <section>
-                <h2>Extending the Framework</h2>
-                
-                <h3>Add a New Dataset</h3>
-                <pre><code>from bench.datasets import BaseDataset
+  <div class="shell">
+    <header>
+      <div class="eyebrow">Visual Reasoning Bench</div>
+      <h1>Benchmark results across all models & datasets</h1>
+      <p class="lede">
+        Centralized scoreboard fed by a single results file. Every run logs model configs, dataset splits,
+        and headline metrics so you can compare performance at a glance.
+      </p>
+      <div class="meta">
+        <span class="badge">Dummy data preview</span>
+        <span id="meta-updated">Updated: —</span>
+        <span id="meta-counts">— benchmarks · — models</span>
+      </div>
+    </header>
 
-class MyDataset(BaseDataset):
-    def _load_data(self):
-        # Load your data here
-        self.samples = [...]</code></pre>
-                
-                <h3>Add a New Model</h3>
-                <pre><code>from bench.models import BaseModel
+    <main>
+      <div class="grid auto" id="summary-cards">
+        <!-- populated by JS -->
+      </div>
 
-class MyModel(BaseModel):
-    def predict(self, image_path, question):
-        # Your inference code here
-        return prediction</code></pre>
-            </section>
+      <section class="card">
+        <div class="section-title">
+          <h3>Benchmarks</h3>
+          <div class="muted">Tap a benchmark to see all model results</div>
         </div>
-        
-        <footer>
-            <p>Visual Reasoning Bench | <a href="https://github.com/serre-lab/visual-reasoning-bench">GitHub</a></p>
-        </footer>
-    </div>
+        <div class="chip-row" id="benchmark-chips"></div>
+        <div class="stack">
+          <div class="muted" id="benchmark-description">Select a benchmark to view details.</div>
+          <div class="muted" id="benchmark-meta"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">
+          <h3 id="table-title">Models on benchmark</h3>
+          <span class="pill" id="metric-pill">Metric: —</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Provider</th>
+              <th>Score</th>
+              <th>Run ID</th>
+            </tr>
+          </thead>
+          <tbody id="results-rows">
+            <tr><td class="muted" colspan="5">Choose a benchmark to populate results.</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const resultsCandidates = [
+      "../results/central_index.json",
+      "/results/central_index.json",
+      "results/central_index.json",
+    ];
+    const fallbackResultsUrl = "mock_results.json";
+
+    const fallbackData = {
+      updated_at: "2024-10-01T12:00:00Z",
+      source: "Dummy results for mock layout",
+      benchmarks: [
+        {
+          id: "vpt-depth",
+          name: "VPT Depth Reasoning",
+          metric: "Accuracy",
+          dataset_size: 200,
+          description: "Binary depth-ordering questions on multi-object scenes.",
+          models: [
+            { name: "OpenAI GPT-5.1", provider: "OpenRouter", score: 0.87, latency: "2.9s", run_id: "2024-09-28-gpt5", config: "openai/gpt-5_1" },
+            { name: "OpenAI GPT-4o", provider: "OpenRouter", score: 0.82, latency: "2.4s", run_id: "2024-09-21-gpt4o", config: "openai/gpt-4o" },
+            { name: "Google Gemini 3 Pro Preview", provider: "Google", score: 0.79, latency: "3.1s", run_id: "2024-09-18-gemini3", config: "google/gemini-3-pro-preview" },
+            { name: "Anthropic Claude 3.5 Sonnet", provider: "Anthropic", score: 0.75, latency: "2.6s", run_id: "2024-09-15-sonnet35", config: "anthropic/claude-3-5-sonnet" }
+          ]
+        },
+        {
+          id: "pathfinder-easy",
+          name: "Pathfinder Easy",
+          metric: "Accuracy",
+          dataset_size: 300,
+          description: "Find the connecting path between two dots with short distractors.",
+          models: [
+            { name: "OpenAI GPT-5.1", provider: "OpenRouter", score: 0.81, latency: "3.2s", run_id: "2024-09-28-gpt5", config: "openai/gpt-5_1" },
+            { name: "OpenAI GPT-4o", provider: "OpenRouter", score: 0.77, latency: "2.9s", run_id: "2024-09-21-gpt4o", config: "openai/gpt-4o" },
+            { name: "Google Gemini 3 Pro Preview", provider: "Google", score: 0.72, latency: "3.4s", run_id: "2024-09-18-gemini3", config: "google/gemini-3-pro-preview" }
+          ]
+        },
+        {
+          id: "pathfinder-medium",
+          name: "Pathfinder Medium",
+          metric: "Accuracy",
+          dataset_size: 300,
+          description: "Longer mazes with heavier clutter to stress visual reasoning.",
+          models: [
+            { name: "OpenAI GPT-5.1", provider: "OpenRouter", score: 0.74, latency: "3.5s", run_id: "2024-09-28-gpt5", config: "openai/gpt-5_1" },
+            { name: "OpenAI GPT-4o", provider: "OpenRouter", score: 0.69, latency: "3.0s", run_id: "2024-09-21-gpt4o", config: "openai/gpt-4o" },
+            { name: "Google Gemini 3 Pro Preview", provider: "Google", score: 0.65, latency: "3.6s", run_id: "2024-09-18-gemini3", config: "google/gemini-3-pro-preview" },
+            { name: "Anthropic Claude 3.5 Sonnet", provider: "Anthropic", score: 0.62, latency: "3.1s", run_id: "2024-09-15-sonnet35", config: "anthropic/claude-3-5-sonnet" }
+          ]
+        }
+      ]
+    };
+
+    let dataCache = null;
+    let currentBenchmark = null;
+
+    function formatPercent(value) {
+      return (value * 100).toFixed(1) + "%";
+    }
+
+    function computeUniqueModels(benchmarks) {
+      const names = new Set();
+      benchmarks.forEach(b => b.models.forEach(m => names.add(m.name)));
+      return names.size;
+    }
+
+    function renderSummary(data) {
+      const totalBenchmarks = data.benchmarks.length;
+      const totalModels = computeUniqueModels(data.benchmarks);
+
+      const topScore = Math.max(...data.benchmarks.flatMap(b => b.models.map(m => m.score)));
+      const best = data.benchmarks
+        .flatMap(b => b.models.map(m => ({ ...m, benchmark: b.name, metric: b.metric })))
+        .sort((a, b) => b.score - a.score)[0];
+
+      const cards = [
+        {
+          title: "Benchmarks tracked",
+          value: totalBenchmarks,
+          detail: "Datasets with published runs"
+        },
+        {
+          title: "Unique models",
+          value: totalModels,
+          detail: "Across all benchmarks"
+        },
+        {
+          title: "Top performer",
+          value: best ? `${best.name} · ${formatPercent(best.score)}` : "—",
+          detail: best ? `On ${best.benchmark}` : "Awaiting results",
+          highlight: true
+        },
+        {
+          title: "Latest update",
+          value: new Date(data.updated_at).toLocaleDateString(),
+          detail: "From central results file"
+        }
+      ];
+
+      const container = document.getElementById("summary-cards");
+      container.innerHTML = "";
+
+      cards.forEach(card => {
+        const div = document.createElement("div");
+        div.className = `card${card.highlight ? " highlight" : ""}`;
+        div.innerHTML = `
+          <h3>${card.title}</h3>
+          <div class="stat-value">${card.value}</div>
+          <div class="stat-label">${card.detail}</div>
+        `;
+        container.appendChild(div);
+      });
+
+      document.getElementById("meta-updated").textContent = `Updated: ${new Date(data.updated_at).toLocaleString()}`;
+      document.getElementById("meta-counts").textContent = `${totalBenchmarks} benchmarks · ${totalModels} models`;
+    }
+
+    function renderBenchmarkChips(benchmarks) {
+      const row = document.getElementById("benchmark-chips");
+      row.innerHTML = "";
+
+      benchmarks.forEach((b, idx) => {
+        const chip = document.createElement("button");
+        chip.className = "chip" + (idx === 0 ? " active" : "");
+        chip.textContent = b.name;
+        chip.onclick = () => selectBenchmark(b.id);
+        row.appendChild(chip);
+      });
+
+      if (benchmarks[0]) {
+        selectBenchmark(benchmarks[0].id);
+      }
+    }
+
+    function selectBenchmark(id) {
+      const benchmark = dataCache.benchmarks.find(b => b.id === id);
+      if (!benchmark) return;
+      currentBenchmark = benchmark;
+
+      document.querySelectorAll(".chip").forEach(chip => {
+        chip.classList.toggle("active", chip.textContent === benchmark.name);
+      });
+
+      document.getElementById("benchmark-description").textContent = benchmark.description || "—";
+      document.getElementById("benchmark-meta").textContent =
+        `Metric: ${benchmark.metric} • Samples: ${benchmark.dataset_size || "—"} • Models: ${benchmark.models.length}`;
+      document.getElementById("table-title").textContent = `Models on ${benchmark.name}`;
+      document.getElementById("metric-pill").textContent = `Metric: ${benchmark.metric}`;
+
+      const rows = document.getElementById("results-rows");
+      rows.innerHTML = "";
+
+      benchmark.models
+        .slice()
+        .sort((a, b) => b.score - a.score)
+        .forEach(model => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>
+              <div class="stack">
+                <span>${model.name}</span>
+                <span class="muted">${model.config || ""}</span>
+              </div>
+            </td>
+            <td>${model.provider || "—"}</td>
+            <td class="score">
+              ${formatPercent(model.score)}
+              <div class="spark">
+                <div class="spark-bar"><div class="spark-fill" style="width:${model.score * 100}%"></div></div>
+              </div>
+            </td>
+            <td>${model.run_id || "—"}</td>
+          `;
+          rows.appendChild(tr);
+        });
+    }
+
+    async function loadData() {
+      const fetchJson = async (url) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Failed fetch for ${url}`);
+        return res.json();
+      };
+
+      for (const url of resultsCandidates) {
+        try {
+          const data = await fetchJson(url);
+          return data;
+        } catch (err) {
+          console.warn(`Results not found at ${url}`, err);
+        }
+      }
+
+      try {
+        return await fetchJson(fallbackResultsUrl);
+      } catch (err) {
+        console.warn("Fallback file missing, using embedded dummy data.", err);
+      }
+
+      return fallbackData;
+    }
+
+    (async function init() {
+      dataCache = await loadData();
+      renderSummary(dataCache);
+      renderBenchmarkChips(dataCache.benchmarks);
+    })();
+  </script>
 </body>
 </html>

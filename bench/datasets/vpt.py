@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+import random
 from typing import Any, Dict, Optional, Tuple
 
 from .base import BaseDataset
@@ -23,8 +24,8 @@ class VPTDataset(BaseDataset):
 
     DEFAULT_QUESTIONS: Dict[str, str] = {
         "depth": "Is the green object closer to the camera than the red ball? Answer only with 'yes' or 'no'.",
-        "vpt-basic": "From the observer's viewpoint, can they see the target object?",
-        "vpt-strategy": "Does the observer maintain line of sight to the target in this scenario?",
+        "vpt-basic": "Can the green observer see the red ball in this scenario?",
+        "vpt-strategy": "Can the green observer see the red ball in this scenario?",
         "default": "Is the statement about this {task} scene true?",
     }
 
@@ -50,6 +51,8 @@ class VPTDataset(BaseDataset):
         positive_answer: str = "yes",
         negative_answer: str = "no",
         limit: Optional[int] = None,
+        shuffle_samples: bool = False,
+        shuffle_seed: Optional[int] = None,
         **kwargs,
     ) -> None:
         """Initialize the loader.
@@ -66,6 +69,9 @@ class VPTDataset(BaseDataset):
             positive_answer: String to use for label ``1``.
             negative_answer: String to use for label ``0``.
             limit: Optional cap on the number of samples to load for debugging.
+            shuffle_samples: Whether to shuffle before applying ``limit``. Useful to avoid
+                always sampling the first N items.
+            shuffle_seed: Optional seed for deterministic shuffling.
             **kwargs: Ignored additional params to stay compatible with BaseDataset.
         """
         self.hf_dataset = hf_dataset
@@ -82,23 +88,39 @@ class VPTDataset(BaseDataset):
         self.positive_answer = positive_answer
         self.negative_answer = negative_answer
         self.limit = limit
+        self.shuffle_samples = shuffle_samples
+        self.shuffle_seed = shuffle_seed
 
         super().__init__(data_dir=data_dir, **kwargs)
 
     def _load_data(self) -> None:
         normalized_split = self._normalize_split(self.split)
-        split_expr = (
-            f"{normalized_split}[:{self.limit}]"
-            if self.limit is not None
-            else normalized_split
-        )
-        dataset = load_dataset(
-            self.hf_dataset,
-            self.hf_config,
-            split=split_expr,
-            cache_dir=self.hf_cache_dir,
-            use_auth_token=self.use_auth_token,
-        )
+        # Shuffle-aware loading: if shuffling, pull the whole split then shuffle/select.
+        if self.shuffle_samples:
+            dataset = load_dataset(
+                self.hf_dataset,
+                self.hf_config,
+                split=normalized_split,
+                cache_dir=self.hf_cache_dir,
+                use_auth_token=self.use_auth_token,
+            )
+            dataset = dataset.shuffle(seed=self.shuffle_seed)
+            if self.limit is not None:
+                dataset = dataset.select(range(self.limit))
+        else:
+            split_expr = (
+                f"{normalized_split}[:{self.limit}]"
+                if self.limit is not None
+                else normalized_split
+            )
+            dataset = load_dataset(
+                self.hf_dataset,
+                self.hf_config,
+                split=split_expr,
+                cache_dir=self.hf_cache_dir,
+                use_auth_token=self.use_auth_token,
+            )
+
         dataset = dataset.cast_column("image", HFImage(decode=False))
 
         for idx, example in enumerate(dataset):
@@ -125,6 +147,8 @@ class VPTDataset(BaseDataset):
                 "scene": example.get("scene"),
                 "setting": example.get("setting"),
                 "img_id": example.get("img_id"),
+                "shuffled": self.shuffle_samples,
+                "shuffle_seed": self.shuffle_seed,
             }
             metadata.update(prompt_meta)
 
